@@ -1,32 +1,16 @@
 package app.wefridge.parse.application.model
 
 import app.wefridge.parse.md5
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
-import kotlinx.android.parcel.RawValue
+import com.parse.ParseUser
 
-data class User(
-    val id: String,
-    val name: String,
-    val email: String,
-    private val _image: String?,
-    val ownerReference: @RawValue DocumentReference?
-) {
-    override fun toString(): String = email
-    val image: String = _image ?: "https://www.gravatar.com/avatar/${email.md5()}?s=64&d=wavatar"
-    val ref = UserController.getUserRef(id)
-
-    companion object {
-        fun fromSnapshot(snapshot: DocumentSnapshot): User {
-            with(snapshot) {
-                return User(
-                    id,
-                    getString("name") ?: "",
-                    getString("email") ?: "",
-                    getString("image"),
-                    getDocumentReference("owner")
-                )
-            }
-        }
+val ParseUser.image: String
+    get() {
+        return getString("image") ?: "https://www.gravatar.com/avatar/${email.md5()}?s=64&d=wavatar"
     }
-}
+
+var ParseUser.owner: ParseUser?
+    get() = getParseUser("owner")
+    set(value) = put("owner", value!!)
+
+val ParseUser.name: String
+    get() = getString("name") ?: ""

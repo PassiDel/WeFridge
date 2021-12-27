@@ -13,9 +13,9 @@ import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import app.wefridge.parse.R
 import app.wefridge.parse.application.model.Item
+import app.wefridge.parse.application.model.UserController
 import app.wefridge.parse.databinding.FragmentNearbyDetailBinding
 import app.wefridge.parse.formatDistance
-import com.google.firebase.auth.FirebaseAuth
 
 
 /**
@@ -50,10 +50,8 @@ class NearbyDetailFragment : Fragment() {
 
     private fun loadContactInfo() {
         sp = PreferenceManager.getDefaultSharedPreferences(context)
-        val user = FirebaseAuth.getInstance().currentUser!!
-
-        email = sp.getString(SETTINGS_EMAIL, user.email!!)!!
-        name = sp.getString(SETTINGS_NAME, user.displayName!!)!!
+        email = UserController.getLocalEmail(sp)
+        name = UserController.getLocalEmail(sp)
     }
 
     override fun onCreateView(

@@ -13,12 +13,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import app.wefridge.parse.R
 import app.wefridge.parse.application.model.Item
 import app.wefridge.parse.application.model.ItemController
-import app.wefridge.parse.application.model.UserController
 import app.wefridge.parse.databinding.FragmentPantryListBinding
 import app.wefridge.parse.displayToastOnInternetUnavailable
-import com.google.firebase.firestore.DocumentChange
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.ListenerRegistration
+import com.parse.ParseUser
+import com.parse.livequery.SubscriptionHandling
 
 
 /**
@@ -29,8 +27,7 @@ class PantryFragment : Fragment() {
     private var _binding: FragmentPantryListBinding? = null
     private val binding get() = _binding!!
     private val values = ArrayList<Item>()
-    private var snapshotListener: ListenerRegistration? = null
-    private var ownerRef: DocumentReference? = null
+    private var snapshotListener: (() -> kotlin.Unit)? = null
     private val recyclerViewAdapter = ItemRecyclerViewAdapter(values, R.id.action_from_list_to_edit)
 
     override fun onCreateView(
@@ -53,10 +50,7 @@ class PantryFragment : Fragment() {
         }
 
         binding.fab.setOnClickListener {
-            val bundle = Bundle()
-            bundle.putString(ARG_OWNER, ownerRef?.id)
-
-            findNavController().navigate(R.id.action_from_list_to_edit, bundle)
+            findNavController().navigate(R.id.action_from_list_to_edit)
         }
 
         val itemSwipeTouchHelper =
@@ -78,40 +72,48 @@ class PantryFragment : Fragment() {
     override fun onStart() {
         super.onStart()
 
-        UserController.getCurrentUser() ?: return
+        ParseUser.getCurrentUser() ?: return
 
         loadItems()
     }
 
-    override fun onStop() {
-        super.onStop()
-        snapshotListener?.remove()
+    override fun onDestroy() {
+        super.onDestroy()
+        snapshotListener?.invoke()
+        snapshotListener = null
     }
 
     private fun loadItems() {
-        snapshotListener?.remove()
+        if (snapshotListener != null)
+            return
+//        snapshotListener?.invoke()
         with(values) {
             val oldSize = size
             clear()
             recyclerViewAdapter.notifyItemRangeRemoved(0, oldSize)
         }
 
-        ItemController.getItemsSnapshot({ it, ownerRef ->
-            snapshotListener = it
-            this.ownerRef = ownerRef
-        }) { item, type, oldIndex, newIndex ->
-            when (type) {
-                DocumentChange.Type.ADDED -> {
-                    values.add(newIndex, item!!)
-                    recyclerViewAdapter.notifyItemInserted(newIndex)
-                }
-                DocumentChange.Type.MODIFIED -> {
-                    values[newIndex] = item!!
-                    recyclerViewAdapter.notifyItemChanged(newIndex)
-                }
-                DocumentChange.Type.REMOVED -> {
-                    values.removeAt(oldIndex)
-                    recyclerViewAdapter.notifyItemRemoved(oldIndex)
+        snapshotListener = ItemController.getItemsSnapshot { item, type ->
+            activity?.runOnUiThread {
+                when (type) {
+                    SubscriptionHandling.Event.CREATE, SubscriptionHandling.Event.ENTER -> {
+                        values.add(item!!)
+                        recyclerViewAdapter.notifyItemInserted(values.size - 1)
+                    }
+                    SubscriptionHandling.Event.UPDATE -> run {
+                        val index = values.indexOf(item!!)
+                        if (index < 0)
+                            return@run
+                        values[index] = item
+                        recyclerViewAdapter.notifyItemChanged(index)
+                    }
+                    SubscriptionHandling.Event.DELETE, SubscriptionHandling.Event.LEAVE -> run {
+                        val index = values.indexOf(item!!)
+                        if (index < 0)
+                            return@run
+                        values.removeAt(index)
+                        recyclerViewAdapter.notifyItemRemoved(index)
+                    }
                 }
             }
         }

@@ -14,7 +14,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.firebase.firestore.GeoPoint
+import com.parse.ParseGeoPoint
 import java.io.IOException
 import java.util.*
 
@@ -23,7 +23,7 @@ class LocationController(
     private val callbackOnPermissionDenied: () -> kotlin.Unit,
     private val callbackForPermissionRationale: ((Boolean) -> kotlin.Unit) -> kotlin.Unit,
     private val callbackOnDeterminationFailed: () -> kotlin.Unit,
-    private val callbackOnSuccess: (geoPoint: GeoPoint) -> kotlin.Unit
+    private val callbackOnSuccess: (geoPoint: ParseGeoPoint) -> kotlin.Unit
 ) {
     private val requestPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -51,7 +51,8 @@ class LocationController(
                 fusedLocationClient.getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
                     .addOnSuccessListener { geoPoint ->
                         if (geoPoint != null) callbackOnSuccess(
-                            GeoPoint(geoPoint.latitude, geoPoint.longitude))
+                            ParseGeoPoint(geoPoint.latitude, geoPoint.longitude)
+                        )
                         else callbackOnDeterminationFailed()
 
                     }
@@ -82,7 +83,7 @@ class LocationController(
     }
 
     companion object {
-        fun buildAddressStringFrom(geoPoint: GeoPoint, ctx: Context): String {
+        fun buildAddressStringFrom(geoPoint: ParseGeoPoint, ctx: Context): String {
             val geocoder = Geocoder(ctx, Locale.getDefault())
             val addressString: String
             try {
@@ -109,15 +110,15 @@ class LocationController(
 
         }
 
-        fun getGeoPointFrom(address: String, ctx: Context): GeoPoint {
+        fun getGeoPointFrom(address: String, ctx: Context): ParseGeoPoint {
             // the following piece of code is inspired by https://stackoverflow.com/questions/3574644/how-can-i-find-the-latitude-and-longitude-from-address/27834110#27834110
             val geocoder = Geocoder(ctx)
-            val matchedGeoPoint: GeoPoint
+            val matchedGeoPoint: ParseGeoPoint
 
             try {
                 val matchedAddresses: List<Address> = geocoder.getFromLocationName(address, 1)
                 val chosenAddress = matchedAddresses[0]
-                matchedGeoPoint = GeoPoint(chosenAddress.latitude, chosenAddress.longitude)
+                matchedGeoPoint = ParseGeoPoint(chosenAddress.latitude, chosenAddress.longitude)
             } catch (exc: Exception) {
                 Log.e("EditFragment", "Error while building GeoPoint from address string: ", exc)
                 throw exc

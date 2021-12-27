@@ -1,33 +1,41 @@
 {
   "project_info": {
-    "project_number": "129245758038",
-    "project_id": "we-fridge",
-    "storage_bucket": "we-fridge.appspot.com"
+    "project_number": "1038887608810",
+    "project_id": "wefridge-parse",
+    "storage_bucket": "wefridge-parse.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:129245758038:android:e66811f9255b54ab4cf1f7",
+        "mobilesdk_app_id": "1:1038887608810:android:bb062d165eaa1e4fd4d293",
         "android_client_info": {
-          "package_name": "app.wefridge.wefridge"
+          "package_name": "app.wefridge.parse"
         }
       },
       "oauth_client": [
         {
-          "client_id": "129245758038-iu1snpub1ggp7vel55mejhdkjpo1301h.apps.googleusercontent.com",
+          "client_id": "1038887608810-5pvs5oklr576rb7f8sqvfhjn7plfdsk0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.wefridge.parse",
+            "certificate_hash": "727abebbf08d8af4553e612d27f709ef1a625ee0"
+          }
+        },
+        {
+          "client_id": "1038887608810-tih2o4bt4949ldik5bb3ortqh6p5shg5.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyB3zy00zuKbCivlobIQyfua5TT11GbGWY0"
+          "current_key": "AIzaSyBe_4lFCzWL57v8L-BYvvIgE5lN-DrGf7w"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "129245758038-iu1snpub1ggp7vel55mejhdkjpo1301h.apps.googleusercontent.com",
+              "client_id": "1038887608810-tih2o4bt4949ldik5bb3ortqh6p5shg5.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

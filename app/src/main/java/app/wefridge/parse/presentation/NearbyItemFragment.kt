@@ -13,7 +13,7 @@ import app.wefridge.parse.R
 import app.wefridge.parse.application.model.*
 import app.wefridge.parse.databinding.FragmentNerbyItemListBinding
 import app.wefridge.parse.displayToastOnInternetUnavailable
-import com.firebase.geofire.GeoLocation
+import com.parse.ParseGeoPoint
 
 /**
  * A fragment representing a list of Items.
@@ -28,7 +28,7 @@ class NearbyItemFragment : Fragment() {
     private lateinit var scrollListener: EndlessRecyclerOnScrollListener
     private lateinit var refreshLayout: SwipeRefreshLayout
     private lateinit var locationController: LocationController
-    private var geoLocation: GeoLocation? = null
+    private var geoLocation: ParseGeoPoint? = null
 
     private var radius: Double = 0.0
 
@@ -53,7 +53,7 @@ class NearbyItemFragment : Fragment() {
             },
             callbackOnDeterminationFailed = { alertDialogOnUnableToDetermineLocation(requireContext()).show() },
             callbackOnSuccess = { geoPoint ->
-                geoLocation = GeoLocation(geoPoint.latitude, geoPoint.longitude)
+                geoLocation = ParseGeoPoint(geoPoint.latitude, geoPoint.longitude)
                 loading = false
                 loadPage()
             })
@@ -123,7 +123,7 @@ class NearbyItemFragment : Fragment() {
 
             _adapter.notifyItemRangeChanged(0, newSize)
 
-            radius = items.last().distance
+//            radius = items.last().distance
 
             loading = false
         }, {

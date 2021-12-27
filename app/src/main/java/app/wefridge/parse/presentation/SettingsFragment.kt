@@ -1,6 +1,7 @@
 package app.wefridge.parse.presentation
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
@@ -18,15 +19,16 @@ import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import app.wefridge.parse.R
-import app.wefridge.parse.application.MainActivity
-import app.wefridge.parse.application.model.User
+import app.wefridge.parse.application.DispatchActivity
 import app.wefridge.parse.application.model.UserController
+import app.wefridge.parse.application.model.name
+import app.wefridge.parse.application.model.owner
 import app.wefridge.parse.databinding.FragmentSettingsBinding
 import app.wefridge.parse.databinding.FragmentSettingsParticipantAddBinding
 import app.wefridge.parse.displayToastOnInternetUnavailable
-import com.firebase.ui.auth.AuthUI
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.firebase.auth.FirebaseAuth
+import com.parse.ParseUser
+
 
 var SETTINGS_EMAIL = "SETTINGS_EMAIL"
 var SETTINGS_NAME = "SETTINGS_NAME"
@@ -40,11 +42,11 @@ class SettingsFragment : Fragment() {
     private lateinit var sp: SharedPreferences
     private lateinit var email: String
     private lateinit var name: String
-    private val values: ArrayList<User> = arrayListOf()
+    private val values: ArrayList<ParseUser> = arrayListOf()
     private val participantsRecyclerViewAdapter = SettingsParticipantsRecyclerViewAdapter(values) {
         Log.v("Auth", "delete: ${it.email}")
 
-        UserController.removeOwner(it.ref, {}, {
+        UserController.removeOwner(it.objectId, {}, {
             // reload list
         })
     }
@@ -75,47 +77,38 @@ class SettingsFragment : Fragment() {
         binding.contactEmail.editText!!.setText(email)
         binding.contactName.editText!!.setText(name)
 
-        UserController.getUser({ user ->
+        val user = UserController.getCurrentUser()
+        if (user.owner != null) {
+            binding.ownerEmail.text =
+                getString(R.string.participants_manager, user.owner!!.name)
+            binding.ownerEmail.visibility = View.VISIBLE
+
+            // TODO: change "invite participants" button to "leave" (or add a new one)
+            return
+        }
+
+        UserController.getUsersParticipants({ participants ->
             if (_binding == null)
-                return@getUser
-
-            if (user.ownerReference != null) {
-                UserController.getUser({ owner ->
-                    if (_binding != null) {
-                        binding.ownerEmail.text =
-                            getString(R.string.participants_manager, owner.name)
-                        binding.ownerEmail.visibility = View.VISIBLE
-
-                        // TODO: change "invite participants" button to "leave" (or add a new one)
-                    }
-                }, {}, user.ownerReference)
-                return@getUser
+                return@getUsersParticipants
+            binding.participants.visibility = View.VISIBLE
+            binding.inviteParticipants.isEnabled = true
+            with(values) {
+                val oldSize = size
+                clear()
+                participantsRecyclerViewAdapter.notifyItemRangeRemoved(0, oldSize)
             }
+            if (participants == null)
+                return@getUsersParticipants
 
-            UserController.getUsersParticipants({ participants ->
-                if (_binding == null)
-                    return@getUsersParticipants
-                binding.participants.visibility = View.VISIBLE
-                binding.inviteParticipants.isEnabled = true
-                with(values) {
-                    val oldSize = size
-                    clear()
-                    participantsRecyclerViewAdapter.notifyItemRangeRemoved(0, oldSize)
-                }
-                if (participants == null)
-                    return@getUsersParticipants
-
-                with(values) {
-                    addAll(participants)
-                    participantsRecyclerViewAdapter.notifyItemRangeInserted(
-                        0,
-                        participants.size
-                    )
-                    Log.v("Auth", "$size i")
-                }
-            }, {})
-
-        }, { logout() })
+            with(values) {
+                addAll(participants)
+                participantsRecyclerViewAdapter.notifyItemRangeInserted(
+                    0,
+                    participants.size
+                )
+                Log.v("Auth", "$size i")
+            }
+        }, {})
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -222,7 +215,7 @@ class SettingsFragment : Fragment() {
                             }
                             return@getUserFromEmail
                         }
-                        if (newParticipant.ownerReference != null) {
+                        if (newParticipant.getParseObject("owner") != null) {
                             Handler(Looper.getMainLooper()).post {
                                 Toast.makeText(
                                     context,
@@ -233,7 +226,7 @@ class SettingsFragment : Fragment() {
                             return@getUserFromEmail
                         }
 
-                        UserController.setOwner(newParticipant.ref, {
+                        UserController.setOwner(newParticipant.objectId, {
                             with(values) {
                                 add(size, newParticipant)
                                 participantsRecyclerViewAdapter.notifyItemInserted(size - 1)
@@ -262,7 +255,7 @@ class SettingsFragment : Fragment() {
 
             val okButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
             okButton.isEnabled = false
-            val ownEmail = FirebaseAuth.getInstance().currentUser!!.email
+            val ownEmail = UserController.getCurrentUser().email
             editText.addTextChangedListener { it2 ->
                 val content = it2.toString()
                 val isValid = Patterns.EMAIL_ADDRESS.matcher(content).matches()
@@ -280,18 +273,17 @@ class SettingsFragment : Fragment() {
     }
 
     private fun logout() {
-        UserController.unsubscribeFromMessaging(sp)
-
         // clear preferences on logout
         sp.edit {
             clear()
             apply()
         }
-        AuthUI.getInstance()
-            .signOut(requireContext())
-            .addOnCompleteListener {
-                (activity as MainActivity).authWall()
-            }
+
+        ParseUser.logOut()
+
+        val intent = Intent(context, DispatchActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 
     override fun onDestroyView() {

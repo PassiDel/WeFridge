@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
+        android:name=".application.App"
         android:allowBackup="true"
         android:icon="@mipmap/fridge_show_image"
         android:label="@string/app_name"
@@ -20,28 +21,78 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/fern_green" />
         <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:name="com.parse.push.notification_icon"
             android:resource="@drawable/show_fridge_notification" />
 
+        <meta-data
+            android:name="com.parse.SERVER_URL"
+            android:value="@string/parse_app_url" />
+        <meta-data
+            android:name="com.parse.APPLICATION_ID"
+            android:value="@string/parse_app_id" />
+        <meta-data
+            android:name="com.parse.CLIENT_KEY"
+            android:value="@string/parse_client_key" />
         <activity
-            android:name="app.wefridge.parse.application.MainActivity"
-            android:exported="true"
+            android:name=".application.DispatchActivity"
             android:label="@string/app_name"
-            android:theme="@style/Theme.WeFridge.NoActionBar">
+            android:launchMode="singleTop"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name="com.parse.ui.login.ParseLoginActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleTop">
+            <meta-data
+                android:name="com.parse.ui.login.ParseLoginActivity.PARSE_LOGIN_ENABLED"
+                android:value="true"/>
+            <meta-data
+                android:name="com.parse.ui.login.ParseLoginActivity.PARSE_LOGIN_EMAIL_AS_USERNAME"
+                android:value="true" />
+            <meta-data
+                android:name="com.parse.ui.login.ParseLoginActivity.FACEBOOK_LOGIN_ENABLED"
+                android:value="false" />
+            <meta-data
+                android:name="com.parse.ui.login.ParseLoginActivity.TWITTER_LOGIN_ENABLED"
+                android:value="false" />
+        </activity>
+
+        <activity
+            android:name="app.wefridge.parse.application.MainActivity"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.WeFridge.NoActionBar"
+            android:launchMode="singleTop">
+        </activity>
+<!--        <service-->
+<!--            android:name="app.wefridge.parse.application.WeFridgeFirebaseMessagingService"-->
+<!--            android:exported="false">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="com.google.firebase.INSTANCE_ID_EVENT" />-->
+<!--                <action android:name="com.google.firebase.MESSAGING_EVENT"/>-->
+<!--            </intent-filter>-->
+<!--        </service>-->
         <service
-            android:name="app.wefridge.parse.application.WeFridgeFirebaseMessagingService"
+            android:name="com.parse.fcm.ParseFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.google.firebase.INSTANCE_ID_EVENT" />
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+        <receiver
+            android:name="com.parse.ParsePushBroadcastReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.parse.push.intent.RECEIVE" />
+                <action android:name="com.parse.push.intent.DELETE" />
+                <action android:name="com.parse.push.intent.OPEN" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

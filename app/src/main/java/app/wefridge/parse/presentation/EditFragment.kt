@@ -24,10 +24,8 @@ import app.wefridge.parse.application.exceptions.ItemIsSharedWithoutLocationExce
 import app.wefridge.parse.application.model.*
 import app.wefridge.parse.application.model.Unit
 import app.wefridge.parse.databinding.FragmentEditBinding
-import com.firebase.geofire.GeoFireUtils
-import com.firebase.geofire.GeoLocation
 import com.google.android.material.textfield.TextInputLayout
-import com.google.firebase.firestore.GeoPoint
+import com.parse.ParseGeoPoint
 import java.io.IOException
 
 const val ARG_OWNER = "owner"
@@ -41,7 +39,7 @@ class EditFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var model: Item
     private lateinit var locationController: LocationController
-    private val ADD_ITEM_MODE: Boolean get() = model.firebaseId.isNullOrEmpty()
+    private val ADD_ITEM_MODE: Boolean get() = model.objectId.isNullOrEmpty()
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var unitDropdownMenu: PopupMenu
 
@@ -53,7 +51,7 @@ class EditFragment : Fragment() {
         setModel()
 
         (requireActivity() as AppCompatActivity).supportActionBar?.title =
-            model.firebaseId?.let { model.name } ?: getString(R.string.add_new_item)
+            model.objectId?.let { model.name } ?: getString(R.string.add_new_item)
 
         setUpLocationController()
     }
@@ -72,16 +70,17 @@ class EditFragment : Fragment() {
             callbackOnDeterminationFailed = { alertDialogOnUnableToDetermineLocation(requireContext()) },
             callbackOnSuccess = { geoPoint ->
                 model.location = geoPoint
-                model.geohash = GeoFireUtils.getGeoHashForLocation(GeoLocation(model.location!!.latitude, model.location!!.longitude))
+//                model.geohash = GeoFireUtils.getGeoHashForLocation(GeoLocation(model.location!!.latitude, model.location!!.longitude))
                 // the following code is based on https://stackoverflow.com/questions/9409195/how-to-get-complete-address-from-latitude-and-longitude
                 binding.addressTextInputLayout.editText?.setText(tryBuildAddressStringFrom(geoPoint))
             })
     }
 
     private fun setModel() {
-        val ownerReference = arguments?.getString(ARG_OWNER)?.let { UserController.getUserRef(it) }
-            ?: UserController.getCurrentUserRef()
-        model = arguments?.getParcelable(ARG_MODEL) ?: Item(ownerReference = ownerReference)
+        val item = Item()
+        item.owner = UserController.getCurrentOwner()
+
+        model = arguments?.getParcelable(ARG_MODEL) ?: item
 
         model.contactName = UserController.getLocalName(sharedPreferences)
         model.contactEmail = UserController.getLocalEmail(sharedPreferences)
@@ -257,15 +256,7 @@ class EditFragment : Fragment() {
             if (!hasFocus) {
                 binding.addressTextInputLayout.isEndIconVisible = false
                 model.location = tryGetGeoPointFromAddressUserInput()
-                if (model.location != null) {
-                    model.geohash = GeoFireUtils.getGeoHashForLocation(
-                        GeoLocation(
-                            model.location!!.latitude,
-                            model.location!!.longitude
-                        )
-                    )
-                } else {
-                    model.geohash = null
+                if (model.location == null) {
                     alertDialogOnErrorParsingAddressString(requireContext()).show()
                 }
             }
@@ -348,8 +339,8 @@ class EditFragment : Fragment() {
             }
     }
 
-    private fun tryGetGeoPointFromAddressUserInput(): GeoPoint? {
-        var matchedGeoPoint: GeoPoint? = null
+    private fun tryGetGeoPointFromAddressUserInput(): ParseGeoPoint? {
+        var matchedGeoPoint: ParseGeoPoint? = null
         try {
             val userInputAddress = binding.addressTextInputLayout.editText?.text.toString()
             matchedGeoPoint = LocationController.getGeoPointFrom(userInputAddress, requireContext())
@@ -360,7 +351,7 @@ class EditFragment : Fragment() {
         return matchedGeoPoint
     }
 
-    private fun tryBuildAddressStringFrom(geoPoint: GeoPoint): String? {
+    private fun tryBuildAddressStringFrom(geoPoint: ParseGeoPoint): String? {
         var addressString: String? = null
         try {
             addressString = LocationController.buildAddressStringFrom(geoPoint, requireContext())
